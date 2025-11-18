@@ -43,21 +43,29 @@ export const useLibraryItemSvg = (
         } else {
           // When there is no svg in cache export it and save to cache
           (async () => {
-            const exportedSvg = await exportLibraryItemToSvg(elements);
-            if (exportedSvg) {
-              // TODO: should likely be removed for custom fonts
-              exportedSvg.querySelector(".style-fonts")?.remove();
-              svgCache.set(id, exportedSvg);
-              setSvg(exportedSvg);
+            try {
+              const exportedSvg = await exportLibraryItemToSvg(elements);
+              if (exportedSvg) {
+                // TODO: should likely be removed for custom fonts
+                exportedSvg.querySelector(".style-fonts")?.remove();
+                svgCache.set(id, exportedSvg);
+                setSvg(exportedSvg);
+              }
+            } catch (error) {
+              console.error("Error exporting library item to SVG:", error);
             }
           })();
         }
       } else {
         // When we have no id (usualy selected items from canvas) just export the svg
         (async () => {
-          const exportedSvg = await exportLibraryItemToSvg(elements);
-          if (exportedSvg) {
-            setSvg(exportedSvg);
+          try {
+            const exportedSvg = await exportLibraryItemToSvg(elements);
+            if (exportedSvg) {
+              setSvg(exportedSvg);
+            }
+          } catch (error) {
+            console.error("Error exporting library item to SVG:", error);
           }
         })();
       }

@@ -127,17 +127,25 @@ const SingleLibraryItem = ({
       return;
     }
     (async () => {
-      const svg = await exportToSvg({
-        elements: libItem.elements,
-        appState: {
-          ...appState,
-          viewBackgroundColor: OpenColor.white,
-          exportBackground: true,
-        },
-        files: null,
-        skipInliningFonts: true,
-      });
-      node.innerHTML = svg.outerHTML;
+      try {
+        const svg = await exportToSvg({
+          elements: libItem.elements,
+          appState: {
+            ...appState,
+            viewBackgroundColor: OpenColor.white,
+            exportBackground: true,
+          },
+          files: null,
+          skipInliningFonts: true,
+        });
+        if (svg) {
+          node.innerHTML = svg.outerHTML;
+        }
+      } catch (error) {
+        console.error("Error exporting library item to SVG:", error);
+        // Clear the node on error
+        node.innerHTML = "";
+      }
     })();
   }, [libItem.elements, appState]);
 

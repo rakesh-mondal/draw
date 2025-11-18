@@ -44,10 +44,9 @@ export const useLibraryItemSvg = (
           // When there is no svg in cache export it and save to cache
           (async () => {
             const exportedSvg = await exportLibraryItemToSvg(elements);
-            // TODO: should likely be removed for custom fonts
-            exportedSvg.querySelector(".style-fonts")?.remove();
-
             if (exportedSvg) {
+              // TODO: should likely be removed for custom fonts
+              exportedSvg.querySelector(".style-fonts")?.remove();
               svgCache.set(id, exportedSvg);
               setSvg(exportedSvg);
             }
@@ -57,7 +56,9 @@ export const useLibraryItemSvg = (
         // When we have no id (usualy selected items from canvas) just export the svg
         (async () => {
           const exportedSvg = await exportLibraryItemToSvg(elements);
-          setSvg(exportedSvg);
+          if (exportedSvg) {
+            setSvg(exportedSvg);
+          }
         })();
       }
     }

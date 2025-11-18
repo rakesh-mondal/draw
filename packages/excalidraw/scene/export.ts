@@ -463,6 +463,10 @@ export const exportToSvg = async (
   // render elements
   // ---------------------------------------------------------------------------
 
+  if (!rough || typeof rough.svg !== "function") {
+    throw new Error("Rough.js library is not available. Please ensure roughjs is properly installed.");
+  }
+
   const rsvg = rough.svg(svgRoot);
 
   const renderEmbeddables = opts?.renderEmbeddables ?? false;

@@ -1,12 +1,15 @@
-// Import rough.js - use the same pattern as other working files (App.tsx, renderElement.ts)
-// This ensures consistent bundling behavior
+// Import rough.js - CRITICAL: This import must be preserved by the bundler
+// Using the exact same pattern as App.tsx and renderElement.ts which work correctly
 import rough from "roughjs/bin/rough";
 import type { RoughSVG } from "roughjs/bin/svg";
 
-// Ensure rough is available - add a check that prevents tree-shaking
-// Access properties immediately to ensure bundler includes them
-if (typeof rough !== "object" || !rough) {
-  console.error("Rough.js failed to load at module initialization");
+// Force the bundler to include rough.js by accessing it in a way that can't be optimized
+// This pattern matches what works in other files
+if (process.env.NODE_ENV === "development") {
+  // In dev, verify the import worked
+  if (!rough || typeof rough !== "object") {
+    console.warn("Rough.js import may have failed");
+  }
 }
 
 import {
@@ -484,25 +487,23 @@ export const exportToSvg = async (
   // render elements
   // ---------------------------------------------------------------------------
 
-  // Ensure rough.js is available before using it
-  // Use explicit checks to prevent bundler optimizations
-  const roughInstance = rough;
-  if (!roughInstance || typeof roughInstance !== "object") {
+  // Use rough.js - access it directly like other working files do
+  // The import at the top should ensure it's available
+  if (!rough || typeof rough !== "object") {
     throw new Error("Rough.js module is not available. Please ensure roughjs@4.6.4 is properly installed.");
   }
   
-  const svgMethod = roughInstance.svg;
-  if (!svgMethod || typeof svgMethod !== "function") {
+  if (typeof rough.svg !== "function") {
     throw new Error("Rough.js svg method is not available. Please ensure roughjs@4.6.4 is properly installed.");
   }
   
-  // Initialize RoughSVG renderer
+  // Initialize RoughSVG renderer - use direct call like App.tsx does
   let rsvg: RoughSVG;
   try {
-    rsvg = svgMethod.call(roughInstance, svgRoot);
+    rsvg = rough.svg(svgRoot);
   } catch (error) {
     console.error("Error initializing Rough.js SVG:", error);
-    console.error("Rough module:", roughInstance);
+    console.error("Rough module:", rough);
     throw new Error(
       `Rough.js library failed to initialize: ${error instanceof Error ? error.message : String(error)}`
     );

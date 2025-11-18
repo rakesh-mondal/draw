@@ -1,24 +1,35 @@
-// Import rough.js - ensure it's preserved by using it immediately
-// This pattern prevents tree-shaking optimizations from removing the import
-import roughModule from "roughjs/bin/rough";
+// Import rough.js types only - use dynamic import at runtime to prevent bundling issues
 import type { RoughSVG } from "roughjs/bin/svg";
 
-// Ensure the import is evaluated and handle default export
-// Using a pattern that bundlers can't optimize away
-const rough = (() => {
-  const module = roughModule;
-  // Access a property to ensure the module is evaluated
-  if (module && typeof module === "object") {
-    return module;
+// Lazy loader for rough.js - ensures it's loaded correctly in production builds
+let roughCache: any = null;
+const getRough = async (): Promise<any> => {
+  if (roughCache) {
+    return roughCache;
   }
-  // Fallback: try to get default export
-  return (roughModule as any)?.default || roughModule;
-})();
-
-// Verify rough is available at module load time
-if (!rough || typeof rough !== "object") {
-  console.error("Rough.js module failed to load at module initialization");
-}
+  
+  try {
+    // Try dynamic import first (most reliable in production)
+    const roughDynamic = await import("roughjs/bin/rough");
+    roughCache = roughDynamic.default || roughDynamic;
+    
+    // Validate the module
+    if (!roughCache || typeof roughCache !== "object") {
+      throw new Error("Rough.js module is not an object");
+    }
+    
+    if (typeof roughCache.svg !== "function" && typeof roughCache.canvas !== "function") {
+      throw new Error("Rough.js module missing required methods");
+    }
+    
+    return roughCache;
+  } catch (error) {
+    console.error("Failed to load rough.js:", error);
+    throw new Error(
+      `Failed to load rough.js library: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+};
 
 import {
   DEFAULT_EXPORT_PADDING,
@@ -258,25 +269,12 @@ export const exportToCanvas = async (
     files,
   });
 
-  // Dynamically import rough.js to ensure it's loaded correctly in production builds
-  // This prevents tree-shaking and code-splitting issues
-  let roughInstance = rough;
-  if (!roughInstance || typeof roughInstance !== "object" || typeof (roughInstance as any).canvas !== "function") {
-    // Fallback: try dynamic import if static import failed
-    try {
-      const roughDynamic = await import("roughjs/bin/rough");
-      roughInstance = roughDynamic.default || roughDynamic;
-    } catch (importError) {
-      console.error("Failed to dynamically import rough.js:", importError);
-      throw new Error(
-        `Rough.js library is not available. Static import failed and dynamic import also failed: ${importError instanceof Error ? importError.message : String(importError)}`
-      );
-    }
-  }
-
-  // Ensure rough.js is available before using it
-  if (!roughInstance || typeof roughInstance !== "object" || typeof (roughInstance as any).canvas !== "function") {
-    throw new Error("Rough.js library is not available. Please ensure roughjs is properly installed.");
+  // Load rough.js dynamically to ensure it's available in production builds
+  const roughInstance = await getRough();
+  
+  // Ensure canvas method is available
+  if (typeof roughInstance.canvas !== "function") {
+    throw new Error("Rough.js canvas method is not available. Please ensure roughjs is properly installed.");
   }
 
   renderStaticScene({
@@ -504,51 +502,21 @@ export const exportToSvg = async (
   // render elements
   // ---------------------------------------------------------------------------
 
-  // Dynamically import rough.js to ensure it's loaded correctly in production builds
-  // This prevents tree-shaking and code-splitting issues
-  let roughInstance = rough;
-  if (!roughInstance || typeof roughInstance !== "object" || typeof (roughInstance as any).svg !== "function") {
-    // Fallback: try dynamic import if static import failed
-    try {
-      const roughDynamic = await import("roughjs/bin/rough");
-      roughInstance = roughDynamic.default || roughDynamic;
-    } catch (importError) {
-      console.error("Failed to dynamically import rough.js:", importError);
-      throw new Error(
-        `Rough.js library is not available. Static import failed and dynamic import also failed: ${importError instanceof Error ? importError.message : String(importError)}`
-      );
-    }
-  }
-
-  // Safety check for rough.js - handle cases where it might not be loaded correctly
-  // Check rough exists before accessing any properties to avoid "Cannot read properties of undefined"
-  if (typeof roughInstance === "undefined" || roughInstance === null) {
-    throw new Error("Rough.js module is undefined or not loaded. Please ensure roughjs@4.6.4 is properly installed and bundled.");
-  }
+  // Load rough.js dynamically to ensure it's available in production builds
+  const roughInstance = await getRough();
   
-  if (typeof roughInstance !== "object") {
-    throw new Error(`Rough.js module is not an object (got ${typeof roughInstance}). Please ensure roughjs@4.6.4 is properly installed and bundled.`);
-  }
-  
-  // Check if svg method exists and is a function
-  const roughSvgMethod = (roughInstance as any).svg;
-  if (!roughSvgMethod) {
-    throw new Error("Rough.js svg method is missing. Please ensure roughjs@4.6.4 is properly installed and bundled.");
-  }
-  
-  if (typeof roughSvgMethod !== "function") {
-    throw new Error(`Rough.js svg is not a function (got ${typeof roughSvgMethod}). Please ensure roughjs@4.6.4 is properly installed and bundled.`);
-  }
-  
+  // Initialize RoughSVG renderer
   let rsvg: RoughSVG;
   try {
+    if (typeof roughInstance.svg !== "function") {
+      throw new Error("Rough.js svg method is not a function");
+    }
     rsvg = roughInstance.svg(svgRoot);
   } catch (error) {
     console.error("Error initializing Rough.js SVG:", error);
     console.error("Rough module:", roughInstance);
-    console.error("Rough type:", typeof roughInstance);
     throw new Error(
-      `Rough.js library failed to initialize: ${error instanceof Error ? error.message : String(error)}. Please ensure roughjs@4.6.4 is properly installed and bundled.`
+      `Rough.js library failed to initialize: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 

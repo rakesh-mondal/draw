@@ -463,11 +463,22 @@ export const exportToSvg = async (
   // render elements
   // ---------------------------------------------------------------------------
 
-  if (!rough || typeof rough.svg !== "function") {
-    throw new Error("Rough.js library is not available. Please ensure roughjs is properly installed.");
+  // Safety check for rough.js - handle cases where it might not be loaded correctly
+  let rsvg: ReturnType<typeof rough.svg>;
+  try {
+    if (!rough) {
+      throw new Error("Rough.js is not available");
+    }
+    if (typeof rough.svg !== "function") {
+      throw new Error("Rough.js svg method is not available");
+    }
+    rsvg = rough.svg(svgRoot);
+  } catch (error) {
+    console.error("Error initializing Rough.js SVG:", error);
+    throw new Error(
+      "Rough.js library failed to initialize. Please ensure roughjs@4.6.4 is properly installed and bundled."
+    );
   }
-
-  const rsvg = rough.svg(svgRoot);
 
   const renderEmbeddables = opts?.renderEmbeddables ?? false;
 

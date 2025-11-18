@@ -1,16 +1,7 @@
-// Import rough.js - CRITICAL: This import must be preserved by the bundler
-// Using the exact same pattern as App.tsx and renderElement.ts which work correctly
+// Import rough.js - using direct import for canvas (works in other files)
 import rough from "roughjs/bin/rough";
-import type { RoughSVG } from "roughjs/bin/svg";
-
-// Force the bundler to include rough.js by accessing it in a way that can't be optimized
-// This pattern matches what works in other files
-if (process.env.NODE_ENV === "development") {
-  // In dev, verify the import worked
-  if (!rough || typeof rough !== "object") {
-    console.warn("Rough.js import may have failed");
-  }
-}
+// Import RoughSVG class directly to bypass potential bundling issues with rough.svg method
+import { RoughSVG } from "roughjs/bin/svg";
 
 import {
   DEFAULT_EXPORT_PADDING,
@@ -487,23 +478,14 @@ export const exportToSvg = async (
   // render elements
   // ---------------------------------------------------------------------------
 
-  // Use rough.js - access it directly like other working files do
-  // The import at the top should ensure it's available
-  if (!rough || typeof rough !== "object") {
-    throw new Error("Rough.js module is not available. Please ensure roughjs@4.6.4 is properly installed.");
-  }
-  
-  if (typeof rough.svg !== "function") {
-    throw new Error("Rough.js svg method is not available. Please ensure roughjs@4.6.4 is properly installed.");
-  }
-  
-  // Initialize RoughSVG renderer - use direct call like App.tsx does
+  // Initialize RoughSVG renderer - import RoughSVG class directly to avoid bundling issues
+  // This bypasses the rough.svg() method which may be tree-shaken in production builds
   let rsvg: RoughSVG;
   try {
-    rsvg = rough.svg(svgRoot);
+    // Use direct instantiation instead of rough.svg() to ensure it works in production
+    rsvg = new RoughSVG(svgRoot);
   } catch (error) {
     console.error("Error initializing Rough.js SVG:", error);
-    console.error("Rough module:", rough);
     throw new Error(
       `Rough.js library failed to initialize: ${error instanceof Error ? error.message : String(error)}`
     );

@@ -102,7 +102,11 @@ export default defineConfig(({ mode }) => {
               // Taking the substring after "locales/"
               return `locales/${id.substring(index + 8)}`;
             }
-            // Don't code-split roughjs - keep it in main bundle to prevent loading issues
+            // CRITICAL: Don't code-split roughjs - keep it in main bundle to prevent loading issues
+            // This ensures rough.svg is available even if only used in one file
+            if (id.includes("roughjs")) {
+              return undefined; // Keep in main bundle
+            }
           },
         },
       },

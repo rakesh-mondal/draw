@@ -1,18 +1,13 @@
-// Import rough.js - using direct import for canvas (works in other files)
+// Import rough.js - using the exact same pattern as App.tsx and renderElement.ts which work correctly
 import rough from "roughjs/bin/rough";
-// Import RoughSVG class directly to bypass potential bundling issues with rough.svg method
-import { RoughSVG } from "roughjs/bin/svg";
 
-// CRITICAL: Ensure rough is available and access rough.svg at module level to prevent tree-shaking
-// This prevents "Cannot read properties of undefined (reading 'svg')" errors in production builds
-if (!rough || typeof rough !== "object") {
-  throw new Error("Rough.js module failed to load. The rough import is undefined.");
-}
-// Force bundler to include rough.svg by accessing it at module level
-// This ensures the method is not tree-shaken even if we use RoughSVG directly
-const _ensureRoughSvg = rough.svg;
-if (typeof _ensureRoughSvg !== "function") {
-  console.warn("Rough.js svg method may not be available in production build");
+// CRITICAL: Access rough.svg at module level to prevent tree-shaking in production builds
+// This ensures rough.svg is included even though it's only used in this file
+// The bundler won't optimize away code that's accessed at module level
+if (typeof rough === "object" && rough !== null) {
+  // Access rough.svg to ensure it's not tree-shaken
+  // Store in a way that can't be optimized away
+  (rough as any).__svgMethod = rough.svg;
 }
 
 import {
@@ -490,26 +485,13 @@ export const exportToSvg = async (
   // render elements
   // ---------------------------------------------------------------------------
 
-  // Initialize RoughSVG renderer - import RoughSVG class directly to avoid bundling issues
-  // This bypasses the rough.svg() method which may be tree-shaken in production builds
-  let rsvg: RoughSVG;
+  // Use rough.svg() directly - same pattern as rough.canvas() in renderElement.ts:273
+  // This matches the working pattern used throughout the codebase
+  let rsvg: ReturnType<typeof rough.svg>;
   try {
-    // Verify RoughSVG is available
-    if (!RoughSVG || typeof RoughSVG !== "function") {
-      // Fallback: try using rough.svg if RoughSVG import failed
-      if (rough && typeof rough === "object" && typeof rough.svg === "function") {
-        rsvg = rough.svg(svgRoot);
-      } else {
-        throw new Error("RoughSVG class is not available and rough.svg fallback also failed");
-      }
-    } else {
-      // Use direct instantiation instead of rough.svg() to ensure it works in production
-      rsvg = new RoughSVG(svgRoot);
-    }
+    rsvg = rough.svg(svgRoot);
   } catch (error) {
     console.error("Error initializing Rough.js SVG:", error);
-    console.error("RoughSVG:", RoughSVG);
-    console.error("rough:", rough);
     throw new Error(
       `Rough.js library failed to initialize: ${error instanceof Error ? error.message : String(error)}`
     );

@@ -714,6 +714,9 @@ class App extends React.Component<AppProps, AppState> {
     this.scene = new Scene();
 
     this.canvas = document.createElement("canvas");
+    if (!rough || typeof rough.canvas !== "function") {
+      throw new Error("Rough.js library is not available. Please ensure roughjs is properly installed.");
+    }
     this.rc = rough.canvas(this.canvas);
     this.renderer = new Renderer(this.scene);
     this.visibleElements = [];

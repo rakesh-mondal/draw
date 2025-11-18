@@ -102,6 +102,7 @@ export default defineConfig(({ mode }) => {
               // Taking the substring after "locales/"
               return `locales/${id.substring(index + 8)}`;
             }
+            // Don't code-split roughjs - keep it in main bundle to prevent loading issues
           },
         },
       },

@@ -1,35 +1,13 @@
-// Import rough.js types only - use dynamic import at runtime to prevent bundling issues
+// Import rough.js - use the same pattern as other working files (App.tsx, renderElement.ts)
+// This ensures consistent bundling behavior
+import rough from "roughjs/bin/rough";
 import type { RoughSVG } from "roughjs/bin/svg";
 
-// Lazy loader for rough.js - ensures it's loaded correctly in production builds
-let roughCache: any = null;
-const getRough = async (): Promise<any> => {
-  if (roughCache) {
-    return roughCache;
-  }
-  
-  try {
-    // Try dynamic import first (most reliable in production)
-    const roughDynamic = await import("roughjs/bin/rough");
-    roughCache = roughDynamic.default || roughDynamic;
-    
-    // Validate the module
-    if (!roughCache || typeof roughCache !== "object") {
-      throw new Error("Rough.js module is not an object");
-    }
-    
-    if (typeof roughCache.svg !== "function" && typeof roughCache.canvas !== "function") {
-      throw new Error("Rough.js module missing required methods");
-    }
-    
-    return roughCache;
-  } catch (error) {
-    console.error("Failed to load rough.js:", error);
-    throw new Error(
-      `Failed to load rough.js library: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-};
+// Ensure rough is available - add a check that prevents tree-shaking
+// Access properties immediately to ensure bundler includes them
+if (typeof rough !== "object" || !rough) {
+  console.error("Rough.js failed to load at module initialization");
+}
 
 import {
   DEFAULT_EXPORT_PADDING,
@@ -269,17 +247,21 @@ export const exportToCanvas = async (
     files,
   });
 
-  // Load rough.js dynamically to ensure it's available in production builds
-  const roughInstance = await getRough();
+  // Ensure rough.js is available before using it
+  // Use explicit checks to prevent bundler optimizations
+  const roughInstance = rough;
+  if (!roughInstance || typeof roughInstance !== "object") {
+    throw new Error("Rough.js module is not available. Please ensure roughjs@4.6.4 is properly installed.");
+  }
   
-  // Ensure canvas method is available
-  if (typeof roughInstance.canvas !== "function") {
-    throw new Error("Rough.js canvas method is not available. Please ensure roughjs is properly installed.");
+  const canvasMethod = roughInstance.canvas;
+  if (!canvasMethod || typeof canvasMethod !== "function") {
+    throw new Error("Rough.js canvas method is not available. Please ensure roughjs@4.6.4 is properly installed.");
   }
 
   renderStaticScene({
     canvas,
-    rc: roughInstance.canvas(canvas),
+    rc: canvasMethod.call(roughInstance, canvas),
     elementsMap: toBrandedType<RenderableElementsMap>(
       arrayToMap(elementsForRender),
     ),
@@ -502,16 +484,22 @@ export const exportToSvg = async (
   // render elements
   // ---------------------------------------------------------------------------
 
-  // Load rough.js dynamically to ensure it's available in production builds
-  const roughInstance = await getRough();
+  // Ensure rough.js is available before using it
+  // Use explicit checks to prevent bundler optimizations
+  const roughInstance = rough;
+  if (!roughInstance || typeof roughInstance !== "object") {
+    throw new Error("Rough.js module is not available. Please ensure roughjs@4.6.4 is properly installed.");
+  }
+  
+  const svgMethod = roughInstance.svg;
+  if (!svgMethod || typeof svgMethod !== "function") {
+    throw new Error("Rough.js svg method is not available. Please ensure roughjs@4.6.4 is properly installed.");
+  }
   
   // Initialize RoughSVG renderer
   let rsvg: RoughSVG;
   try {
-    if (typeof roughInstance.svg !== "function") {
-      throw new Error("Rough.js svg method is not a function");
-    }
-    rsvg = roughInstance.svg(svgRoot);
+    rsvg = svgMethod.call(roughInstance, svgRoot);
   } catch (error) {
     console.error("Error initializing Rough.js SVG:", error);
     console.error("Rough module:", roughInstance);

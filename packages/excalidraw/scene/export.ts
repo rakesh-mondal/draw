@@ -1,4 +1,5 @@
 import rough from "roughjs/bin/rough";
+import type { RoughSVG } from "roughjs/bin/svg";
 
 import {
   DEFAULT_EXPORT_PADDING,
@@ -464,9 +465,9 @@ export const exportToSvg = async (
   // ---------------------------------------------------------------------------
 
   // Safety check for rough.js - handle cases where it might not be loaded correctly
-  let rsvg: ReturnType<typeof rough.svg>;
+  let rsvg: RoughSVG;
   try {
-    if (!rough) {
+    if (!rough || typeof rough !== "object") {
       throw new Error("Rough.js is not available");
     }
     if (typeof rough.svg !== "function") {

@@ -466,17 +466,36 @@ export const exportToSvg = async (
   // Safety check for rough.js - handle cases where it might not be loaded correctly
   let rsvg: ReturnType<typeof rough.svg>;
   try {
+    // Debug logging in production to help diagnose the issue
+    if (typeof window !== "undefined") {
+      console.log("[DEBUG] Rough.js check:", {
+        rough: typeof rough,
+        roughSvg: typeof rough?.svg,
+        roughKeys: rough ? Object.keys(rough) : "rough is undefined",
+      });
+    }
+    
     if (!rough) {
+      console.error("[ERROR] Rough.js is undefined");
       throw new Error("Rough.js is not available");
     }
     if (typeof rough.svg !== "function") {
+      console.error("[ERROR] Rough.js svg is not a function", {
+        roughType: typeof rough,
+        roughSvgType: typeof rough.svg,
+      });
       throw new Error("Rough.js svg method is not available");
     }
     rsvg = rough.svg(svgRoot);
   } catch (error) {
-    console.error("Error initializing Rough.js SVG:", error);
+    console.error("[FATAL] Error initializing Rough.js SVG:", error);
+    console.error("[FATAL] Rough.js state:", {
+      rough,
+      roughType: typeof rough,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
     throw new Error(
-      "Rough.js library failed to initialize. Please ensure roughjs@4.6.4 is properly installed and bundled."
+      `Rough.js library failed to initialize: ${error instanceof Error ? error.message : String(error)}. Please ensure roughjs@4.6.4 is properly installed and bundled.`
     );
   }
 

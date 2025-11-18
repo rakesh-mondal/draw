@@ -239,6 +239,11 @@ export const exportToCanvas = async (
     files,
   });
 
+  // Ensure rough.js is available before using it
+  if (!rough || typeof rough.canvas !== "function") {
+    throw new Error("Rough.js library is not available. Please ensure roughjs is properly installed.");
+  }
+
   renderStaticScene({
     canvas,
     rc: rough.canvas(canvas),
@@ -465,17 +470,32 @@ export const exportToSvg = async (
   // ---------------------------------------------------------------------------
 
   // Safety check for rough.js - handle cases where it might not be loaded correctly
+  // Check rough exists before accessing any properties to avoid "Cannot read properties of undefined"
+  if (typeof rough === "undefined" || rough === null) {
+    throw new Error("Rough.js module is undefined or not loaded. Please ensure roughjs@4.6.4 is properly installed and bundled.");
+  }
+  
+  if (typeof rough !== "object") {
+    throw new Error(`Rough.js module is not an object (got ${typeof rough}). Please ensure roughjs@4.6.4 is properly installed and bundled.`);
+  }
+  
+  // Check if svg method exists and is a function
+  const roughSvgMethod = (rough as any).svg;
+  if (!roughSvgMethod) {
+    throw new Error("Rough.js svg method is missing. Please ensure roughjs@4.6.4 is properly installed and bundled.");
+  }
+  
+  if (typeof roughSvgMethod !== "function") {
+    throw new Error(`Rough.js svg is not a function (got ${typeof roughSvgMethod}). Please ensure roughjs@4.6.4 is properly installed and bundled.`);
+  }
+  
   let rsvg: RoughSVG;
   try {
-    if (!rough || typeof rough !== "object") {
-      throw new Error("Rough.js is not available");
-    }
-    if (typeof rough.svg !== "function") {
-      throw new Error("Rough.js svg method is not available");
-    }
     rsvg = rough.svg(svgRoot);
   } catch (error) {
     console.error("Error initializing Rough.js SVG:", error);
+    console.error("Rough module:", rough);
+    console.error("Rough type:", typeof rough);
     throw new Error(
       `Rough.js library failed to initialize: ${error instanceof Error ? error.message : String(error)}. Please ensure roughjs@4.6.4 is properly installed and bundled.`
     );
